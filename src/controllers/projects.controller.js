@@ -6,7 +6,6 @@ const Task = require('../models/Task');
 async function createProject(req, res, next) {
   try {
     const { name, description } = req.body;
-    if (!name) return res.status(400).json({ error: 'Project name required' });
     const project = await Project.create({ name, description });
     // Create default columns
     const defaultColumns = ['To Do', 'In Progress', 'Done'];

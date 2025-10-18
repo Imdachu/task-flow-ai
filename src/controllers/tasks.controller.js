@@ -5,8 +5,6 @@ const Column = require('../models/Column');
 async function createTask(req, res, next) {
   try {
     const { columnId, title, description } = req.body;
-    if (!columnId) return res.status(400).json({ error: 'columnId is required' });
-    if (!title) return res.status(400).json({ error: 'title is required' });
 
     const column = await Column.findById(columnId);
     if (!column) return res.status(400).json({ error: 'Column not found' });
@@ -37,7 +35,6 @@ async function updateTask(req, res, next) {
     const update = {};
     if (title !== undefined) update.title = title;
     if (description !== undefined) update.description = description;
-    if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Nothing to update' });
 
     const task = await Task.findByIdAndUpdate(id, update, { new: true });
     if (!task) return res.status(404).json({ error: 'Task not found' });
@@ -67,8 +64,6 @@ async function moveTask(req, res, next) {
 
     const task = await Task.findById(id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
-
-    if (!destColumnId) return res.status(400).json({ error: 'destColumnId is required' });
 
     const destColumn = await Column.findById(destColumnId);
     if (!destColumn) return res.status(400).json({ error: 'Destination column not found' });

@@ -3,6 +3,7 @@ const cors = require('cors');
 const { getDbStatus } = require('./config/db');
 const projectsRouter = require('./routes/projects');
 const tasksRouter = require('./routes/tasks');
+const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
@@ -26,5 +27,8 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Centralized error handler (must be last)
+app.use(errorHandler);
 
 module.exports = app;
