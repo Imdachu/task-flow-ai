@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { getDbStatus } = require('./config/db');
 const projectsRouter = require('./routes/projects');
+const tasksRouter = require('./routes/tasks');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/projects', projectsRouter);
+app.use('/api/tasks', tasksRouter);
 
 app.get('/health', (req, res) => {
   const db = getDbStatus();
