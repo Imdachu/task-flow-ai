@@ -59,4 +59,54 @@ async function deleteTask(req, res, next) {
   }
 }
 
-module.exports = { createTask, updateTask, deleteTask };
+// PATCH /api/tasks/:id/move
+async function moveTask(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { destColumnId, beforeTaskId, afterTaskId } = req.body;
+
+    const task = await Task.findById(id);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    if (!destColumnId) return res.status(400).json({ error: 'destColumnId is required' });
+
+    const destColumn = await Column.findById(destColumnId);
+    if (!destColumn) return res.status(400).json({ error: 'Destination column not found' });
+
+    // Compute new position based on neighbors
+    let newPosition;
+
+    if (beforeTaskId && afterTaskId) {
+      // Between two tasks
+      const before = await Task.findById(beforeTaskId).select('position');
+      const after = await Task.findById(afterTaskId).select('position');
+      if (!before || !after) return res.status(400).json({ error: 'Invalid neighbor task IDs' });
+      newPosition = (before.position + after.position) / 2;
+    } else if (beforeTaskId) {
+      // After a task (beforeTaskId is above in visual terms)
+      const before = await Task.findById(beforeTaskId).select('position');
+      if (!before) return res.status(400).json({ error: 'Invalid beforeTaskId' });
+      newPosition = before.position + 1;
+    } else if (afterTaskId) {
+      // Before a task (afterTaskId is below in visual terms)
+      const after = await Task.findById(afterTaskId).select('position');
+      if (!after) return res.status(400).json({ error: 'Invalid afterTaskId' });
+      newPosition = after.position - 1;
+    } else {
+      // Dropped at the end of the column
+      const last = await Task.findOne({ columnId: destColumnId }).sort({ position: -1 }).select('position');
+      newPosition = last ? last.position + 1 : 1;
+    }
+
+    // Update task
+    task.columnId = destColumnId;
+    task.position = newPosition;
+    await task.save();
+
+    res.json({ task });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { createTask, updateTask, deleteTask, moveTask };
