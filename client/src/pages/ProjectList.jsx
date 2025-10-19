@@ -5,7 +5,9 @@ import ProjectCard from '../components/ProjectCard';
 import CreateProjectModal from '../components/CreateProjectModal';
 import { getProjects, createProject } from '../services/projects';
 import { useApi } from '../utils/useApi';
+import useApiWithToast from '../utils/useApiWithToast';
 import './ProjectList.css';
+import Spinner from '../components/Spinner';
 
 function ProjectList() {
   const navigate = useNavigate();
@@ -24,7 +26,7 @@ function ProjectList() {
     loading: creatingProject,
     error: errorCreate,
     execute: createProjectApi,
-  } = useApi(createProject);
+  } = useApiWithToast(createProject, { successMessage: 'Project created', errorMessage: 'Failed to create project' });
 
   // Fetch projects on mount
   useEffect(() => {
@@ -66,7 +68,7 @@ function ProjectList() {
       {/* Loading state */}
       {loadingProjects ? (
         <div className="empty-state">
-          <div className="empty-state-icon">⏳</div>
+          <div className="empty-state-icon"><Spinner /></div>
           <h2>Loading projects...</h2>
         </div>
       ) : errorProjects ? (

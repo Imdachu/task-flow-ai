@@ -1,9 +1,27 @@
 import './TaskCard.css';
+import { useState } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, onDeleteTask, setEditingTask, setDeletingTaskId }) {
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDescription, setEditDescription] = useState(task.description);
+
+  // DnD-kit sortable
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   // Handle edit submit
   const handleEditSubmit = (e) => {
@@ -32,8 +50,9 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
   // Show edit form if editing
   if (isEditing || editMode) {
     return (
-      <form className="task-card" onSubmit={handleEditSubmit}>
+      <form ref={setNodeRef} className="task-card" style={style} onSubmit={handleEditSubmit}>
         <div className="task-card-header">
+          {/* not draggable while editing; drag handle intentionally omitted here */}
           <input
             className="task-card-title"
             value={editTitle}
@@ -50,8 +69,8 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
           />
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>Cancel</button>
-          <button type="submit" className="btn btn-primary">Save</button>
+          <button type="button" className="btn btn-secondary" onClick={handleCancelEdit} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>Cancel</button>
+          <button type="submit" className="btn btn-primary" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>Save</button>
         </div>
       </form>
     );
@@ -60,7 +79,7 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
   // Show delete confirmation if deleting
   if (isDeleting) {
     return (
-      <div className="task-card" style={{ background: '#fff0f0', borderColor: '#b91c1c' }}>
+      <div ref={setNodeRef} className="task-card" style={{ ...style, background: '#fff0f0', borderColor: '#b91c1c' }}>
         <div className="task-card-header">
           <h3 className="task-card-title">Delete Task?</h3>
         </div>
@@ -68,8 +87,8 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
           <p className="task-card-description">Are you sure you want to delete "{task.title}"?</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" onClick={() => setDeletingTaskId(null)}>Cancel</button>
-          <button type="button" className="btn btn-primary" onClick={handleDelete}>Delete</button>
+          <button type="button" className="btn btn-secondary" onClick={() => setDeletingTaskId(null)} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={handleDelete} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>Delete</button>
         </div>
       </div>
     );
@@ -77,7 +96,7 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
 
   // Default view
   return (
-    <div className="task-card">
+    <div ref={setNodeRef} className="task-card" style={style} {...attributes} {...listeners}>
       <div className="task-card-header">
         <h3 className="task-card-title">{task.title}</h3>
       </div>
@@ -87,12 +106,27 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
         </p>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        <button type="button" className="btn btn-secondary" onClick={() => { setEditMode(true); setEditingTask(task); }}>Edit</button>
-        <button type="button" className="btn btn-secondary" onClick={() => setDeletingTaskId(task.id)}>Delete</button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => { setEditMode(true); setEditingTask(task); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setDeletingTaskId(task.id)}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          Delete
+        </button>
       </div>
     </div>
   );
 }
 
-import { useState } from 'react';
 export default TaskCard;

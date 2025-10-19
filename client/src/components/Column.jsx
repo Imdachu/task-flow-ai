@@ -1,7 +1,10 @@
 import TaskCard from './TaskCard';
 import './Column.css';
+import { useDroppable } from '@dnd-kit/core';
 
 function Column({ column, onAddTask, onEditTask, onDeleteTask, editingTask, setEditingTask, deletingTaskId, setDeletingTaskId }) {
+  const { setNodeRef } = useDroppable({ id: column.id });
+
   return (
     <div className="board-column">
       <div className="column-header">
@@ -10,7 +13,7 @@ function Column({ column, onAddTask, onEditTask, onDeleteTask, editingTask, setE
           + Add Task
         </button>
       </div>
-      <div className="column-tasks">
+      <div className="column-tasks" ref={setNodeRef}>
         {column.tasks.length === 0 ? (
           <div className="empty-tasks">No tasks</div>
         ) : (
