@@ -1,5 +1,5 @@
 import './TaskCard.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -7,6 +7,7 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDescription, setEditDescription] = useState(task.description);
+  const [isFocused, setIsFocused] = useState(false);
 
   // DnD-kit sortable
   const {
@@ -21,7 +22,24 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    outline: isFocused ? '2px solid #0078d4' : 'none',
   };
+
+  // Handle keyboard events for drag-and-drop
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      listeners.onKeyDown?.(e);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      // Custom logic for moving tasks up or down
+    }
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      setNodeRef.current?.focus();
+    }
+  }, [isFocused]);
 
   // Handle edit submit
   const handleEditSubmit = (e) => {
@@ -50,7 +68,14 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
   // Show edit form if editing
   if (isEditing || editMode) {
     return (
-      <form ref={setNodeRef} className="task-card" style={style} onSubmit={handleEditSubmit}>
+      <form
+        ref={setNodeRef}
+        className="task-card"
+        style={style}
+        onSubmit={handleEditSubmit}
+        role="form"
+        aria-label="Edit Task"
+      >
         <div className="task-card-header">
           {/* not draggable while editing; drag handle intentionally omitted here */}
           <input
@@ -79,7 +104,13 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
   // Show delete confirmation if deleting
   if (isDeleting) {
     return (
-      <div ref={setNodeRef} className="task-card" style={{ ...style, background: '#fff0f0', borderColor: '#b91c1c' }}>
+      <div
+        ref={setNodeRef}
+        className="task-card"
+        style={{ ...style, background: '#fff0f0', borderColor: '#b91c1c' }}
+        role="alertdialog"
+        aria-labelledby={`delete-task-${task.id}`}
+      >
         <div className="task-card-header">
           <h3 className="task-card-title">Delete Task?</h3>
         </div>
@@ -96,7 +127,19 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
 
   // Default view
   return (
-    <div ref={setNodeRef} className="task-card" style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      className="task-card"
+      style={style}
+      {...attributes}
+      {...listeners}
+      role="listitem"
+      tabIndex={0}
+      aria-grabbed={isDragging}
+      onKeyDown={handleKeyDown}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+    >
       <div className="task-card-header">
         <h3 className="task-card-title">{task.title}</h3>
       </div>

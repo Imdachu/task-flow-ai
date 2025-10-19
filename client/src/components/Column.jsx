@@ -6,16 +6,16 @@ function Column({ column, onAddTask, onEditTask, onDeleteTask, editingTask, setE
   const { setNodeRef } = useDroppable({ id: column.id });
 
   return (
-    <div className="board-column">
+    <div className="board-column" role="region" aria-labelledby={`column-${column.id}`}>
       <div className="column-header">
-        <h2>{column.title}</h2>
-        <button className="btn btn-primary btn-add-task" onClick={onAddTask}>
+        <h2 id={`column-${column.id}`}>{column.title}</h2>
+        <button className="btn btn-primary btn-add-task" onClick={onAddTask} aria-label="Add Task">
           + Add Task
         </button>
       </div>
-      <div className="column-tasks" ref={setNodeRef}>
+      <div className="column-tasks" ref={setNodeRef} role="list" aria-label={`${column.title} tasks`}>
         {column.tasks.length === 0 ? (
-          <div className="empty-tasks">No tasks</div>
+          <div className="empty-tasks" role="listitem">No tasks</div>
         ) : (
           column.tasks.map((task) => (
             <TaskCard
