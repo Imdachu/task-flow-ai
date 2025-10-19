@@ -1,6 +1,6 @@
 import './ProjectCard.css';
 
-function ProjectCard({ project, onClick }) {
+function ProjectCard({ project, onClick, onEdit, onDelete }) {
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -24,6 +24,10 @@ function ProjectCard({ project, onClick }) {
       <div className="project-card-footer">
         <span className="project-card-date">
           📅 {formatDate(project.createdAt)}
+        </span>
+        <span style={{ float: 'right' }}>
+          <button className="btn btn-xs" onClick={e => { e.stopPropagation(); onEdit && onEdit(project); }}>Edit</button>
+          <button className="btn btn-xs btn-danger" onClick={e => { e.stopPropagation(); onDelete && onDelete(project); }}>Delete</button>
         </span>
       </div>
     </div>

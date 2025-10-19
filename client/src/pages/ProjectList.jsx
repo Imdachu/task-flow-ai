@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProjectCard from '../components/ProjectCard';
 import CreateProjectModal from '../components/CreateProjectModal';
-import { getProjects, createProject } from '../services/projects';
+import { getProjects, createProject, deleteProject } from '../services/projects';
 import { useApi } from '../utils/useApi';
 import useApiWithToast from '../utils/useApiWithToast';
 import './ProjectList.css';
@@ -47,6 +47,54 @@ function ProjectList() {
 
   const handleProjectClick = (projectId) => {
     navigate(`/board/${projectId}`);
+  };
+
+  // Edit modal state
+  const [editProject, setEditProject] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  // Delete project
+  const handleDeleteProject = async (project) => {
+    if (!window.confirm(`Delete project "${project.name}"? This cannot be undone.`)) return;
+    try {
+      await deleteProject(project._id || project.id);
+      fetchProjects();
+    } catch (err) {
+      alert('Failed to delete project');
+    }
+  };
+
+  // Edit project
+  const handleEditProject = (project) => {
+    setEditProject(project);
+    setEditForm({ name: project.name || '', description: project.description || '' });
+    setEditError('');
+  };
+
+  const handleEditFormChange = (e) => {
+    setEditForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  };
+
+  const handleEditFormSubmit = async (e) => {
+    e.preventDefault();
+    setEditLoading(true);
+    setEditError('');
+    try {
+      const resp = await fetch(`/api/projects/${editProject._id || editProject.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (!resp.ok) throw new Error('Failed to update project');
+      setEditProject(null);
+      fetchProjects();
+    } catch (err) {
+      setEditError('Failed to update project');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   return (
@@ -102,6 +150,8 @@ function ProjectList() {
               key={project._id || project.id}
               project={project}
               onClick={() => handleProjectClick(project._id || project.id)}
+              onEdit={handleEditProject}
+              onDelete={handleDeleteProject}
             />
           ))}
         </div>
@@ -117,6 +167,53 @@ function ProjectList() {
         <div className="empty-state" style={{ padding: '1rem', color: '#b91c1c' }}>
           <div className="empty-state-icon">❌</div>
           <p>{errorCreate}</p>
+        </div>
+      )}
+      {/* Edit Project Modal */}
+      {editProject && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.25)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 12, boxShadow: '0 4px 32px rgba(0,0,0,0.12)',
+            padding: '2rem', minWidth: 340, maxWidth: 400, width: '100%',
+            display: 'flex', flexDirection: 'column', gap: '1.2rem',
+          }}>
+            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 600 }}>Edit Project</h2>
+            <form onSubmit={handleEditFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label htmlFor="edit-name" style={{ fontWeight: 500 }}>Name</label>
+                <input
+                  id="edit-name"
+                  name="name"
+                  value={editForm.name}
+                  onChange={handleEditFormChange}
+                  required
+                  maxLength={200}
+                  style={{ fontSize: '1rem', padding: '0.6rem', borderRadius: 6, border: '1px solid #ccc', width: '100%' }}
+                  placeholder="Project name"
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label htmlFor="edit-description" style={{ fontWeight: 500 }}>Description</label>
+                <textarea
+                  id="edit-description"
+                  name="description"
+                  value={editForm.description}
+                  onChange={handleEditFormChange}
+                  maxLength={1000}
+                  style={{ fontSize: '1rem', padding: '0.6rem', borderRadius: 6, border: '1px solid #ccc', minHeight: 80, resize: 'vertical', width: '100%' }}
+                  placeholder="Project description"
+                />
+              </div>
+              {editError && <div style={{ color: '#b91c1c', fontWeight: 500 }}>{editError}</div>}
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', justifyContent: 'flex-end' }}>
+                <button className="btn btn-primary" type="submit" disabled={editLoading} style={{ minWidth: 80 }}>Save</button>
+                <button className="btn" type="button" onClick={() => setEditProject(null)} disabled={editLoading} style={{ minWidth: 80 }}>Cancel</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

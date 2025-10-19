@@ -112,4 +112,35 @@ async function summarizeProject(req, res, next) {
   }
 }
 
-module.exports = { createProject, listProjects, getProjectBoard, summarizeProject };
+// PUT /api/projects/:id
+async function updateProject(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (description !== undefined) update.description = description;
+    const project = await Project.findByIdAndUpdate(id, update, { new: true });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    res.json({ project });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/projects/:id
+async function deleteProject(req, res, next) {
+  try {
+    const { id } = req.params;
+    const project = await Project.findByIdAndDelete(id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    // Optionally delete columns and tasks for this project
+    await Column.deleteMany({ projectId: id });
+    await Task.deleteMany({ projectId: id });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { createProject, listProjects, getProjectBoard, summarizeProject, updateProject, deleteProject };

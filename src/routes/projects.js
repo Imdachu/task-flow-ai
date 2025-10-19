@@ -8,9 +8,14 @@ const {
 } = require('../controllers/projects.controller');
 const { validate, validateObjectId, createProjectSchema } = require('../middlewares/validate');
 
+
+const { updateProject, deleteProject } = require('../controllers/projects.controller');
+
 router.post('/', validate(createProjectSchema), createProject);
 router.get('/', listProjects);
 router.get('/:id', validateObjectId('id'), getProjectBoard);
+router.put('/:id', validateObjectId('id'), updateProject);
+router.delete('/:id', validateObjectId('id'), deleteProject);
 router.post('/:id/summarize', validateObjectId('id'), summarizeProject);
 
 module.exports = router;
