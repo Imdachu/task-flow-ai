@@ -23,3 +23,12 @@ export const moveTask = async (taskId, moveData) => {
   const response = await api.patch(`/tasks/${taskId}/move`, moveData);
   return response.data.task;
 };
+
+// Get task insights
+export const askTask = async (taskId) => {
+  const response = await api.post(`/tasks/${taskId}/ask`);
+  // Normalize to a simple shape with insights as string to avoid '[object Object]' in UI
+  const insightsRaw = response.data && response.data.insights;
+  const insights = typeof insightsRaw === 'string' ? insightsRaw : (insightsRaw ? JSON.stringify(insightsRaw) : '');
+  return { insights };
+};

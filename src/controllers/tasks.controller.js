@@ -1,6 +1,7 @@
 const Task = require('../models/Task');
 const Column = require('../models/Column');
-const { GeminiError, summarizeProject } = require('../services/gemini');
+const { GeminiError, summarizeProject, askTask: askGeminiTask } = require('../services/gemini');
+const { sanitizeInput } = require('../utils/sanitize');
 
 // POST /api/tasks
 async function createTask(req, res, next) {
@@ -110,7 +111,7 @@ async function moveTask(req, res, next) {
  */
 async function askTask(req, res) {
   try {
-    const { id } = req.params;
+  const { id } = req.params;
 
     // Fetch the task details
     const task = await Task.findById(id).lean();
@@ -128,11 +129,12 @@ async function askTask(req, res) {
       { title: sanitizeInput(task.title), description: sanitizeInput(task.description || '') },
       ...siblings.map(sibling => ({ title: sanitizeInput(sibling.title), description: sanitizeInput(sibling.description || '') }))
     ];
+  // prompt prepared
 
     // Call Gemini API for insights
     let insights;
     try {
-      insights = await summarizeProject(prompt, { retries: 3, timeoutMs: 10000 });
+      insights = await askGeminiTask(task, siblings, { retries: 3, timeoutMs: 10000 });
     } catch (geminiError) {
       if (geminiError instanceof GeminiError) {
         switch (geminiError.code) {
@@ -143,7 +145,14 @@ async function askTask(req, res) {
           case 'unauthorized':
             return res.status(503).json({ error: 'AI service unauthorized', code: geminiError.code });
           case 'bad_request':
-            return res.status(502).json({ error: 'AI service rejected request', code: geminiError.code, status: geminiError.status, providerSnippet: geminiError.original });
+            // providerSnippet may be an Error object; stringify safely to avoid serialization errors
+            try {
+              const util = require('util');
+              const snippet = geminiError.original ? util.inspect(geminiError.original, { depth: 2, maxArrayLength: 20 }) : undefined;
+              return res.status(502).json({ error: 'AI service rejected request', code: geminiError.code, status: geminiError.status, providerSnippet: snippet });
+            } catch (e) {
+              return res.status(502).json({ error: 'AI service rejected request', code: geminiError.code, status: geminiError.status });
+            }
           default:
             return res.status(502).json({ error: 'AI request failed', code: geminiError.code, status: geminiError.status });
         }
@@ -151,9 +160,56 @@ async function askTask(req, res) {
 
       return res.status(502).json({ error: 'Failed to generate insights using Gemini API', details: geminiError.message });
     }
+    try {
+      const util = require('util');
+      // Keep minimal logging only on unexpected shapes
+      // Example: log type for debugging in case of unusual non-string responses
+      if (typeof insights !== 'string') {
+        const preview = util.inspect(insights, { depth: 2, maxArrayLength: 20 });
+        console.warn('[tasks.controller] askTask non-string insights preview:', preview);
+      }
+    } catch (logErr) {
+      console.error('[tasks.controller] failed to preview insights safely', logErr);
+    }
 
-    // Return the AI-generated insights
-    res.json({ insights });
+  // Return the AI-generated insights
+  // Normalize insights to a plain string for frontend
+    let normalized = '';
+    try {
+      if (typeof insights === 'string') {
+        normalized = insights;
+      } else if (!insights) {
+        normalized = '';
+      } else if (Array.isArray(insights?.candidates) && insights.candidates.length) {
+        normalized = insights.candidates.map(c => c?.content ?? c?.output ?? c?.text ?? '').join('\n');
+      } else if (Array.isArray(insights?.outputs) && insights.outputs.length) {
+        normalized = insights.outputs.map(o => {
+          try {
+            const parts = (o?.content?.[0]?.parts) || [];
+            return parts.map(p => p?.text || '').join('');
+          } catch (_) { return '' }
+        }).join('\n');
+      } else if (typeof insights === 'object') {
+        // Try to extract common nested text fields, fallback to a safe string
+        try {
+          if (insights?.text) normalized = String(insights.text);
+          else if (insights?.output) normalized = String(insights.output);
+          else {
+            const util = require('util');
+            normalized = util.inspect(insights, { depth: 2, maxArrayLength: 50 });
+          }
+        } catch (e) {
+          normalized = String(insights);
+        }
+      } else {
+        normalized = String(insights);
+      }
+    } catch (normErr) {
+      console.error('[tasks.controller] Failed to normalize insights:', normErr);
+      normalized = String(insights);
+    }
+
+    res.json({ insights: normalized });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }

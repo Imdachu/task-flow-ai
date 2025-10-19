@@ -1,18 +1,15 @@
-
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { getProjectBoard } from '../services/projects';
-import { createTask, updateTask, deleteTask, moveTask } from '../services/tasks';
+import { getProjectBoard, summarizeProject } from '../services/projects';
+import { createTask, updateTask, deleteTask, moveTask, askTask } from '../services/tasks';
 import { useApi } from '../utils/useApi';
 import useApiWithToast from '../utils/useApiWithToast';
 import Column from '../components/Column';
 import Spinner from '../components/Spinner';
 import CreateTaskModal from '../components/CreateTaskModal';
 import './BoardView.css';
-
 
 function BoardView() {
   const { projectId } = useParams();
@@ -21,6 +18,10 @@ function BoardView() {
   const [selectedColumnId, setSelectedColumnId] = useState(null);
   const [editTask, setEditTask] = useState(null); // For editing
   const [deleteTaskId, setDeleteTaskId] = useState(null); // For deleting
+  const [summary, setSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [aiInsights, setAiInsights] = useState(null);
+  const [modalTask, setModalTask] = useState(null);
 
   // Fetch board data
   const {
@@ -174,6 +175,47 @@ function BoardView() {
     } catch (err) {}
   };
 
+  // Summarize project (use centralized service exported from client services)
+  const { execute: summarizeProjectApi, loading: summarizeLoading } = useApiWithToast(
+    (id) => summarizeProject(id),
+    {
+      successMessage: 'Project summarized successfully!',
+      errorMessage: 'Failed to summarize project.',
+    }
+  );
+
+  const { execute: askAI, loading: askAILoading } = useApiWithToast(
+    (taskId) => askTask(taskId),
+    {
+      successMessage: 'AI insights fetched successfully!',
+      errorMessage: 'Failed to fetch AI insights.',
+    }
+  );
+
+  const handleSummarize = async () => {
+    const result = await summarizeProjectApi(projectId);
+    if (result) {
+      setSummary(result.summary);
+    }
+  };
+
+  const handleAskAI = async (task) => {
+    // task is the full task object from TaskCard/Column
+    setModalTask(task);
+    setAiInsights(null);
+    try {
+      const result = await askAI(task.id);
+      if (result) {
+        // Defensive: ensure insights is a plain string for rendering
+        const raw = result.insights;
+        const normalized = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
+        setAiInsights(normalized);
+      }
+    } catch (err) {
+      // swallow - use toast from useApiWithToast
+    }
+  };
+
   // Render
   return (
     <div className="board-view-page">
@@ -216,6 +258,7 @@ function BoardView() {
                   onAddTask={() => handleAddTaskClick(col.id)}
                   onEditTask={handleEditTask}
                   onDeleteTask={handleDeleteTask}
+                  onAskAI={handleAskAI} // Pass handleAskAI
                   editingTask={editTask}
                   setEditingTask={setEditTask}
                   deletingTaskId={deleteTaskId}
@@ -235,6 +278,28 @@ function BoardView() {
         loading={creatingTask}
         error={errorCreateTask}
       />
+
+      {/* Summarize Project Button */}
+      <div className="summarize-project">
+        <button className="btn btn-primary" onClick={handleSummarize} disabled={loadingSummary}>
+          {loadingSummary ? 'Summarizing...' : 'Summarize Project'}
+        </button>
+        {summary && (
+          <div className="summary">
+            <h3>Project Summary</h3>
+            <p>{summary}</p>
+          </div>
+        )}
+      </div>
+
+      {aiInsights && modalTask && (
+        <div className="modal">
+          <h3>AI Insights for "{modalTask.title}"</h3>
+          <p>{aiInsights}</p>
+          <button onClick={() => setAiInsights(null)}>Close</button>
+        </div>
+      )}
+
       {/* Error modals for update/delete can be added similarly if needed */}
     </div>
   );

@@ -2,7 +2,7 @@ import TaskCard from './TaskCard';
 import './Column.css';
 import { useDroppable } from '@dnd-kit/core';
 
-function Column({ column, onAddTask, onEditTask, onDeleteTask, editingTask, setEditingTask, deletingTaskId, setDeletingTaskId }) {
+function Column({ column, onAddTask, onEditTask, onDeleteTask, onAskAI, editingTask, setEditingTask, deletingTaskId, setDeletingTaskId }) {
   const { setNodeRef } = useDroppable({ id: column.id });
 
   return (
@@ -21,6 +21,7 @@ function Column({ column, onAddTask, onEditTask, onDeleteTask, editingTask, setE
             <TaskCard
               key={task.id}
               task={task}
+              onAskAI={() => onAskAI(task)} // Pass onAskAI to TaskCard
               onEdit={() => setEditingTask(task)}
               onDelete={() => setDeletingTaskId(task.id)}
               isEditing={editingTask && editingTask.id === task.id}

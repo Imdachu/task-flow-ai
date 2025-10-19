@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, onDeleteTask, setEditingTask, setDeletingTaskId }) {
+function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, onDeleteTask, setEditingTask, setDeletingTaskId, onAskAI }) {
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDescription, setEditDescription] = useState(task.description);
@@ -166,6 +166,17 @@ function TaskCard({ task, onEdit, onDelete, isEditing, isDeleting, onEditTask, o
           onMouseDown={(e) => e.stopPropagation()}
         >
           Delete
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onPointerDown={(e) => {
+            // call handler on pointer down as well (helps with drag interactions)
+            try { onAskAI?.(); } catch (err) { /* swallow */ }
+          }}
+          onClick={() => { onAskAI?.(); }}
+        >
+          Ask AI
         </button>
       </div>
     </div>
