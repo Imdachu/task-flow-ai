@@ -41,7 +41,8 @@ function payloadToString(payload) {
   try { return JSON.stringify(payload).slice(0, 10000); } catch (e) { return String(payload); }
 }
 
-async function callGemini(payload, retries = 2, timeoutMs = 10000) {
+// Added timeout and retry logic for Gemini API calls
+async function callGemini(payload, retries = 3, timeoutMs = 10000) {
   if (!GEMINI_API_KEY) throw new GeminiError('Gemini API key not configured', { code: 'unauthorized' });
 
   return queue.add(async () => {
@@ -53,53 +54,6 @@ async function callGemini(payload, retries = 2, timeoutMs = 10000) {
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        if (client.defaults.baseURL && client.defaults.baseURL.includes('generativelanguage.googleapis.com')) {
-          const googlePayload = { contents: [{ parts: [{ text: payloadToString(payload) }] }] };
-          const path = `?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-          const res = await client.post(path, googlePayload, { signal });
-          clearTimeout(timeout);
-          const data = res.data;
-          const candidates = data?.candidates;
-
-          const tryExtractText = (obj) => {
-            if (!obj) return null;
-            if (typeof obj === 'string') return obj;
-            if (Array.isArray(obj)) {
-              for (const item of obj) {
-                const t = tryExtractText(item);
-                if (t) return t;
-              }
-              return null;
-            }
-            if (obj.text && typeof obj.text === 'string') return obj.text;
-            if (obj.parts && Array.isArray(obj.parts)) {
-              for (const p of obj.parts) if (p && typeof p.text === 'string') return p.text;
-            }
-            if (obj.content) return tryExtractText(obj.content);
-            if (obj.output) return tryExtractText(obj.output);
-            for (const k of Object.keys(obj)) {
-              const v = obj[k];
-              if (typeof v === 'string' && v.length > 0) return v;
-              if (Array.isArray(v) || (v && typeof v === 'object')) {
-                const t = tryExtractText(v);
-                if (t) return t;
-              }
-            }
-            return null;
-          };
-
-          let text = null;
-          if (Array.isArray(candidates) && candidates.length) {
-            text = tryExtractText(candidates[0]);
-          }
-
-          if (!text) text = tryExtractText(data);
-
-          if (text && typeof text === 'string') return String(text).trim();
-
-          throw new GeminiError('No text content returned by provider', { code: 'gateway', status: res.status, original: data });
-        }
-
         const res = await client.post('', payload, {
           headers: { Authorization: `Bearer ${GEMINI_API_KEY}` },
           signal,
@@ -107,27 +61,9 @@ async function callGemini(payload, retries = 2, timeoutMs = 10000) {
         clearTimeout(timeout);
 
         if (res.status < 200 || res.status >= 300) {
-          const snippet = (() => {
-            try {
-              const d = res.data;
-              if (!d) return `HTTP ${res.status}`;
-              const keys = Object.keys(d).slice(0, 5);
-              const picked = {};
-              keys.forEach(k => { picked[k] = d[k]; });
-              return JSON.stringify(picked).slice(0, 1000);
-            } catch (e) {
-              return `HTTP ${res.status}`;
-            }
-          })();
-
-          if (res.status >= 400 && res.status < 500 && res.status !== 429) {
-            throw new GeminiError(`Gemini bad request`, { code: 'bad_request', status: res.status, original: snippet });
-          }
-          throw new Error(`Gemini HTTP ${res.status}: ${snippet}`);
+          throw new GeminiError(`Gemini HTTP ${res.status}`, { code: 'gateway', status: res.status });
         }
 
-        const choice = res.data?.choices?.[0];
-        if (choice) return choice.message?.content || choice.text || String(choice);
         return res.data;
       } catch (err) {
         clearTimeout(timeout);
@@ -139,18 +75,12 @@ async function callGemini(payload, retries = 2, timeoutMs = 10000) {
         }
 
         const status = err.response?.status;
-        if (status) {
-          if (status === 401 || status === 403) {
-            throw new GeminiError('Gemini unauthorized', { code: 'unauthorized', status, original: err.response?.data });
-          }
-          if (status >= 400 && status < 500 && status !== 429) {
-            throw new GeminiError('Gemini bad request', { code: 'bad_request', status, original: err.response?.data });
-          }
+        if (status && status >= 400 && status < 500 && status !== 429) {
+          throw new GeminiError('Gemini bad request', { code: 'bad_request', status, original: err.response?.data });
         }
 
         if (attemptIdx >= retries) {
-          const code = status === 429 ? 'rate_limit' : 'gateway';
-          throw new GeminiError(`Gemini API error: ${err.message || String(err)}`, { code, status, original: err });
+          throw new GeminiError(`Gemini API error: ${err.message || String(err)}`, { code: 'gateway', status });
         }
 
         const backoff = attempt(attemptIdx) + Math.floor(Math.random() * 200);

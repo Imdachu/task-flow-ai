@@ -1,5 +1,6 @@
 const STRIP_TAGS_REGEX = /<[^>]*>/g;
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
+const sanitizeHtml = require('sanitize-html');
 
 function stripTags(input) {
   if (!input) return '';
@@ -25,7 +26,10 @@ function sanitizeInput(input, maxLen = 200) {
   s = stripTags(s);
   s = guardPromptInjection(s);
   if (s.length > maxLen) s = s.slice(0, maxLen - 1) + '…';
-  return s;
+  return sanitizeHtml(s, {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
 }
 
 module.exports = { sanitizeInput };

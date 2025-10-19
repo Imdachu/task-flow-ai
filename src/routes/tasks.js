@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { createTask, updateTask, deleteTask, moveTask } = require('../controllers/tasks.controller');
+const {
+  createTask,
+  updateTask,
+  deleteTask,
+  moveTask,
+  askTask,
+} = require('../controllers/tasks.controller');
 const {
   validate,
   validateObjectId,
@@ -13,5 +19,6 @@ router.post('/', validate(createTaskSchema), createTask);
 router.put('/:id', validateObjectId('id'), validate(updateTaskSchema), updateTask);
 router.delete('/:id', validateObjectId('id'), deleteTask);
 router.patch('/:id/move', validateObjectId('id'), validate(moveTaskSchema), moveTask);
+router.post('/:id/ask', validateObjectId('id'), askTask);
 
 module.exports = router;

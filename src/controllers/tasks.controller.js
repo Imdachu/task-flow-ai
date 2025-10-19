@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const Column = require('../models/Column');
+const { GeminiError, summarizeProject } = require('../services/gemini');
 
 // POST /api/tasks
 async function createTask(req, res, next) {
@@ -104,4 +105,58 @@ async function moveTask(req, res, next) {
   }
 }
 
-module.exports = { createTask, updateTask, deleteTask, moveTask };
+/**
+ * Controller to handle AI insights for a specific task.
+ */
+async function askTask(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Fetch the task details
+    const task = await Task.findById(id).lean();
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Optionally fetch sibling tasks in the same column
+    const siblings = await Task.find({ columnId: task.columnId, _id: { $ne: id } })
+      .select('title description')
+      .lean();
+
+    // Format the prompt for Gemini API
+    const prompt = [
+      { title: sanitizeInput(task.title), description: sanitizeInput(task.description || '') },
+      ...siblings.map(sibling => ({ title: sanitizeInput(sibling.title), description: sanitizeInput(sibling.description || '') }))
+    ];
+
+    // Call Gemini API for insights
+    let insights;
+    try {
+      insights = await summarizeProject(prompt, { retries: 3, timeoutMs: 10000 });
+    } catch (geminiError) {
+      if (geminiError instanceof GeminiError) {
+        switch (geminiError.code) {
+          case 'timeout':
+            return res.status(504).json({ error: 'AI request timed out', code: geminiError.code });
+          case 'rate_limit':
+            return res.status(429).json({ error: 'AI service rate limited', code: geminiError.code });
+          case 'unauthorized':
+            return res.status(503).json({ error: 'AI service unauthorized', code: geminiError.code });
+          case 'bad_request':
+            return res.status(502).json({ error: 'AI service rejected request', code: geminiError.code, status: geminiError.status, providerSnippet: geminiError.original });
+          default:
+            return res.status(502).json({ error: 'AI request failed', code: geminiError.code, status: geminiError.status });
+        }
+      }
+
+      return res.status(502).json({ error: 'Failed to generate insights using Gemini API', details: geminiError.message });
+    }
+
+    // Return the AI-generated insights
+    res.json({ insights });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+}
+
+module.exports = { createTask, updateTask, deleteTask, moveTask, askTask };
