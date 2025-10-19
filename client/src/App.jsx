@@ -1,5 +1,7 @@
 ﻿import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
 import ProjectList from './pages/ProjectList';
+import BoardView from './pages/BoardView';
 import './App.css';
 
 function App() {
@@ -13,6 +15,7 @@ function App() {
         <main className="app-main">
           <Routes>
             <Route path="/" element={<ProjectList />} />
+            <Route path="/board/:projectId" element={<BoardView />} />
           </Routes>
         </main>
       </div>

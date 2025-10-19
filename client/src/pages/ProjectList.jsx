@@ -1,39 +1,46 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProjectCard from '../components/ProjectCard';
 import CreateProjectModal from '../components/CreateProjectModal';
+import { getProjects, createProject } from '../services/projects';
+import { useApi } from '../utils/useApi';
 import './ProjectList.css';
 
 function ProjectList() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Mock data for static UI (will be replaced with real API data in next step)
-  const mockProjects = [
-    {
-      _id: '1',
-      name: 'Website Redesign',
-      description: 'Complete redesign of company website with modern UI/UX',
-      createdAt: '2025-10-15T10:30:00Z',
-    },
-    {
-      _id: '2',
-      name: 'Mobile App Development',
-      description: 'Native mobile app for iOS and Android',
-      createdAt: '2025-10-16T14:20:00Z',
-    },
-    {
-      _id: '3',
-      name: 'API Integration',
-      description: 'Integrate third-party payment and analytics APIs',
-      createdAt: '2025-10-17T09:15:00Z',
-    },
-  ];
+  // useApi for fetching projects
+  const {
+    data: projects,
+    loading: loadingProjects,
+    error: errorProjects,
+    execute: fetchProjects,
+  } = useApi(getProjects);
 
-  const handleCreateProject = (formData) => {
-    console.log('Create project:', formData);
-    // Will implement API call in next step
-    setIsModalOpen(false);
+  // useApi for creating project
+  const {
+    loading: creatingProject,
+    error: errorCreate,
+    execute: createProjectApi,
+  } = useApi(createProject);
+
+  // Fetch projects on mount
+  useEffect(() => {
+    fetchProjects();
+    // eslint-disable-next-line
+  }, []);
+
+  // Handle create project
+  const handleCreateProject = async (formData) => {
+    try {
+      await createProjectApi(formData);
+      setIsModalOpen(false);
+      fetchProjects(); // Refresh list
+    } catch (err) {
+      // Error handled by useApi
+    }
   };
 
   const handleProjectClick = (projectId) => {
@@ -47,20 +54,39 @@ function ProjectList() {
           <h1>My Projects</h1>
           <p>Manage your project boards</p>
         </div>
-        <button 
+        <button
           className="btn btn-primary btn-create"
           onClick={() => setIsModalOpen(true)}
+          disabled={creatingProject}
         >
           + New Project
         </button>
       </div>
 
-      {mockProjects.length === 0 ? (
+      {/* Loading state */}
+      {loadingProjects ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">⏳</div>
+          <h2>Loading projects...</h2>
+        </div>
+      ) : errorProjects ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">❌</div>
+          <h2>Error loading projects</h2>
+          <p>{errorProjects}</p>
+          <button
+            className="btn btn-primary"
+            onClick={fetchProjects}
+          >
+            Retry
+          </button>
+        </div>
+      ) : !projects || projects.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📋</div>
           <h2>No projects yet</h2>
           <p>Create your first project to get started</p>
-          <button 
+          <button
             className="btn btn-primary"
             onClick={() => setIsModalOpen(true)}
           >
@@ -69,11 +95,11 @@ function ProjectList() {
         </div>
       ) : (
         <div className="projects-grid">
-          {mockProjects.map((project) => (
+          {projects.map((project) => (
             <ProjectCard
-              key={project._id}
+              key={project._id || project.id}
               project={project}
-              onClick={() => handleProjectClick(project._id)}
+              onClick={() => handleProjectClick(project._id || project.id)}
             />
           ))}
         </div>
@@ -84,6 +110,13 @@ function ProjectList() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateProject}
       />
+      {/* Show error if create fails */}
+      {errorCreate && (
+        <div className="empty-state" style={{ padding: '1rem', color: '#b91c1c' }}>
+          <div className="empty-state-icon">❌</div>
+          <p>{errorCreate}</p>
+        </div>
+      )}
     </div>
   );
 }
