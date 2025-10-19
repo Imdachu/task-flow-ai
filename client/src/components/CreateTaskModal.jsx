@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './CreateTaskModal.css';
 
-function CreateTaskModal({ isOpen, onClose, onSubmit, columnId }) {
+function CreateTaskModal({ isOpen, onClose, onSubmit, columnId, loading, error }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -51,6 +51,7 @@ function CreateTaskModal({ isOpen, onClose, onSubmit, columnId }) {
               placeholder="Enter task title"
               required
               autoFocus
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -62,14 +63,18 @@ function CreateTaskModal({ isOpen, onClose, onSubmit, columnId }) {
               onChange={handleChange}
               placeholder="Enter task description (optional)"
               rows="4"
+              disabled={loading}
             />
           </div>
+          {error && (
+            <div style={{ color: '#b91c1c', marginBottom: '1rem' }}>{error}</div>
+          )}
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={handleClose}>
+            <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Create Task
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Task'}
             </button>
           </div>
         </form>
