@@ -145,3 +145,47 @@ Frontend runs on `http://localhost:5173` and proxies API requests to backend.
 - Set environment variables in deployment dashboard
 
 ---
+
+## Tech Stack
+
+- **Frontend:** React.js (Vite), DnD Kit, Axios, modern CSS
+- **Backend:** Node.js, Express.js, Joi, CORS, dotenv
+- **Database:** MongoDB (Atlas or local), Mongoose
+- **AI Integration:** Gemini AI (Google Generative Language API)
+- **Testing/Automation:** Jest, Supertest, custom scripts
+- **Deployment:** Vercel/Netlify (frontend), Render/Railway (backend)
+
+---
+
+## How it works / Demo
+
+### 1. Project & Task Management
+
+- **Create Projects:** Click "+ New Project", enter a name and description. Projects appear on the dashboard.
+- **Edit/Delete Projects:** Use the "Edit" or "Delete" buttons on each project card to update or remove projects.
+
+### 2. Kanban Board
+
+- **View Board:** Click a project to open its Kanban board.
+- **Add Tasks:** Click "+ Add Task" in any column to create a new task with title and description.
+- **Edit/Delete Tasks:** Click "Edit" or "Delete" on any task card to update or remove it.
+- **Drag & Drop:** Move tasks between columns (To Do, In Progress, Done) by dragging and dropping.
+
+### 3. AI Features (Gemini Integration)
+
+- **Summarize Project:** Click "Summarize Project" to get an AI-generated summary of all tasks in the project.
+- **Ask AI About a Task:** Click "Ask AI" on any task card to get instant AI-powered suggestions or clarifications for that task.
+
+### 4. Reliability & UX
+
+- **Persistence:** All data is saved in MongoDB and persists across sessions.
+- **Error Handling:** The app uses error boundaries and retry buttons for a smooth experience.
+- **Loading States:** Skeleton loaders and spinners indicate loading and processing.
+- **Health Check:** Visit `/health` on the backend to verify server and database status.
+
+### 5. Demo Videos
+
+- [Demo Video 1 (Loom)](https://www.loom.com/share/b500f1a07cbc4bd0932fcf01bbed2970?sid=ea485063-18d0-4b04-8ce7-29ffee129be4)
+- [Demo Video 2 (Loom)](https://www.loom.com/share/a683fb4337794a4787fd24efa6292a80?sid=07e4cd61-efb1-4b11-8b91-457a20870964)
+
+---![alt text](<Untitled diagram-2025-10-19-193211.png>)
