@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+﻿import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProjectList from './pages/ProjectList';
 import './App.css';
 
 function App() {
@@ -6,31 +7,16 @@ function App() {
     <Router>
       <div className="app">
         <header className="app-header">
-          <h1>📋 Taskboard</h1>
+          <h1> Taskboard</h1>
           <p>Project & Task Management System</p>
         </header>
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<ProjectList />} />
           </Routes>
         </main>
       </div>
     </Router>
-  );
-}
-
-function Home() {
-  return (
-    <div className="home">
-      <h2>Welcome to Taskboard!</h2>
-      <p>Frontend is ready. Backend API running on port 4000.</p>
-      <div className="status">
-        <p>✅ Vite + React configured</p>
-        <p>✅ React Router installed</p>
-        <p>✅ Axios ready for API calls</p>
-        <p>✅ DnD Kit ready for drag-and-drop</p>
-      </div>
-    </div>
   );
 }
 
