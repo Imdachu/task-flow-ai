@@ -65,7 +65,9 @@ const moveTaskSchema = Joi.object({
 function validateObjectId(paramName = 'id') {
   return (req, res, next) => {
     const id = req.params[paramName];
+    console.log(`Validating ObjectId for param: ${paramName}, value: ${id}`);
     if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      console.error(`Invalid ObjectId format for param: ${paramName}, value: ${id}`);
       return res.status(400).json({
         error: `Invalid ${paramName} format`,
       });
