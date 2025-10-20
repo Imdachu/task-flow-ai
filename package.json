@@ -34,6 +34,9 @@
       "/node_modules/"
     ]
   },
+  "overrides": {
+  "lightningcss-win32-x64-msvc": "0.0.0"
+},
   "engines": {
     "node": ">=16"
   }
