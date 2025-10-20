@@ -60,9 +60,22 @@ function BoardView() {
   } = useApiWithToast(moveTask, { successMessage: 'Task moved', errorMessage: 'Failed to move task' });
 
   useEffect(() => {
+    console.log('BoardView mounted with projectId:', projectId);
     if (projectId) fetchBoard(projectId);
     // eslint-disable-next-line
   }, [projectId]);
+
+  // Log boardData to debug rendering
+  useEffect(() => {
+    console.log('Board data updated:', boardData);
+  }, [boardData]);
+
+  // Log errors to the console for debugging
+  useEffect(() => {
+    if (errorBoard) {
+      console.error('Error loading board:', errorBoard);
+    }
+  }, [errorBoard]);
 
   // Create Task
   const handleCreateTask = async (formData) => {
@@ -199,8 +212,8 @@ function BoardView() {
     }
   };
 
+  // Ensure objects are properly rendered in JSX
   const handleAskAI = async (task) => {
-    // task is the full task object from TaskCard/Column
     setModalTask(task);
     setAiInsights(null);
     try {
@@ -212,7 +225,7 @@ function BoardView() {
         setAiInsights(normalized);
       }
     } catch (err) {
-      // swallow - use toast from useApiWithToast
+      console.error('Error fetching AI insights:', err);
     }
   };
 
@@ -287,7 +300,7 @@ function BoardView() {
         {summary && (
           <div className="summary">
             <h3>Project Summary</h3>
-            <p>{summary}</p>
+            <p>{typeof summary === 'string' ? summary : JSON.stringify(summary)}</p>
           </div>
         )}
       </div>
@@ -295,7 +308,7 @@ function BoardView() {
       {aiInsights && modalTask && (
         <div className="modal">
           <h3>AI Insights for "{modalTask.title}"</h3>
-          <p>{aiInsights}</p>
+          <p>{typeof aiInsights === 'string' ? aiInsights : JSON.stringify(aiInsights)}</p>
           <button onClick={() => setAiInsights(null)}>Close</button>
         </div>
       )}

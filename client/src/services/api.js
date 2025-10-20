@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '/api', // Use environment variable or default to '/api'
+  baseURL: 'https://task-flow-ai.onrender.com/api', // Use environment variable or default to '/api'
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
