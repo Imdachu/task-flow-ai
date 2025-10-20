@@ -3,7 +3,7 @@ const http = require('http');
 const app = require('./app');
 const { connectDB, disconnectDB } = require('./config/db');
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000; // Default to 3000 if PORT is not set
 
 const server = http.createServer(app);
 
