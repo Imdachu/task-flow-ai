@@ -114,6 +114,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "vercel-build": "npm install --legacy-peer-deps && npm run build",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"
